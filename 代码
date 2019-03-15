@@ -1,1 +1,69 @@
+#include <reg52.h>	         //调用单片机头文件
+#define uchar unsigned char  //无符号字符型 宏定义	变量范围0~255
+#define uint  unsigned int	 //无符号整型 宏定义	变量范围0~65535
 
+unsigned char code zheng[4]={0xf8,0xf4,0xf2,0xf1};//正转表格
+unsigned char code fan[4]={0xf1,0xf2,0xf4,0xf8};//反转表格
+
+uchar flag_start ;     //启动标志位  1为起动步进电机 否则关闭电机
+uchar flag_z_f;        //正反标志位  0为顺时钟 1为逆时史上转
+uchar flag_zf_value; 
+uchar flag_shudu;      //4种速度 0，1，2，3，
+uint flag_shudu_value = 400;
+uchar dangwei ;    //档位标志位
+uint bjdj_value;   //步进电机的量
+
+uchar menu_1;	   	//设置参数用
+uchar cishu;
+uchar set_q;   //设置的圈数
+uchar flag_bufang ;    //布防标志位
+bit flag_num_en ;   // 倒计时器开始计时使能标志位
+//数码管段选定义      0     1    2    3    4    5	6	 7	  8	   9	
+uchar code smg_du[]={0x28,0xee,0x32,0xa2,0xe4,0xa1,0x21,0xea,0x20,0xa0,
+				  	 0x60,0x25,0x39,0x26,0x31,0x71,0xff};	 //断码
+
+uchar dis_smg[8] = {0};	
+
+uchar set_fen = 30; // 设置倒计时数的启始值 
+uchar set_miao = 0; // 设置倒计时数的启始值 
+uchar fen,miao,weimiao;     		// 倒计时数
+bit flag_500ms;
+
+sbit hw    = P0^1;	   //红外热释传感器定义
+
+sbit smg_we1 = P3^4;	  //数码管位选定义
+sbit smg_we2 = P3^5;
+sbit smg_we3 = P3^6;
+sbit smg_we4 = P3^7;
+
+
+#include "gsm.h"
+
+/***************************数码管位选函数****************************/
+void smg_we_switch(uchar i)
+{
+	switch(i)
+	{
+		case 0: smg_we1 = 0;  smg_we2 = 1; smg_we3 = 1;  smg_we4 = 1; break;
+		case 1: smg_we1 = 1;  smg_we2 = 0; smg_we3 = 1;  smg_we4 = 1; break;
+		case 2: smg_we1 = 1;  smg_we2 = 1; smg_we3 = 0;  smg_we4 = 1; break;
+		case 3: smg_we1 = 1;  smg_we2 = 1; smg_we3 = 1;  smg_we4 = 0; break;
+	}	
+}
+void display()
+{
+	static uchar i;
+	i++;
+	if(i >= 4)
+		i = 0;
+	P1 = 0xff;	  //消隐 
+	smg_we_switch(i);
+	P1 = dis_smg[i];	  //段选
+}
+
+void Delay(unsigned int i)//延时
+{
+	while(--i);
+}
+
+uchar key_can;
